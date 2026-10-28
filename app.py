@@ -1,21 +1,20 @@
 
-import io
-import re
 import html
+import re
 from datetime import date
 
 import pandas as pd
 import streamlit as st
-from pypdf import PdfReader
 from docx import Document
+from fpdf import FPDF
+from pypdf import PdfReader
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from fpdf import FPDF
 
 
-# =========================================================
-# PAGE CONFIGURATION
-# =========================================================
+# ============================================================
+# CONFIGURATION
+# ============================================================
 
 st.set_page_config(
     page_title="SkillBridge AI | Career Intelligence",
@@ -25,27 +24,28 @@ st.set_page_config(
 )
 
 
-# =========================================================
-# DESIGN SYSTEM — IVORY, FOREST GREEN & CHAMPAGNE
-# =========================================================
+# ============================================================
+# LUXURY DESIGN SYSTEM
+# Midnight Navy | Ivory | Champagne | Sage
+# ============================================================
 
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
 
 :root {
-    --ivory: #F7F6F0;
-    --paper: #FFFFFF;
-    --forest: #193D32;
-    --forest-dark: #102C24;
-    --sage: #DCE7DD;
-    --sage-light: #EDF2EB;
-    --gold: #B49A62;
-    --gold-light: #E7D9B5;
-    --ink: #202B26;
-    --muted: #748078;
-    --line: #E4E6DD;
-    --danger: #A7473D;
+    --navy: #17232D;
+    --navy-light: #263B46;
+    --ivory: #F6F3EB;
+    --white: #FFFEFA;
+    --gold: #C7A96B;
+    --gold-light: #E7D7B2;
+    --sage: #DDE7DC;
+    --sage-dark: #345848;
+    --ink: #202B31;
+    --muted: #59666C;
+    --border: #DEDCD3;
+    --soft: #EFEEE6;
 }
 
 html, body, [class*="css"] {
@@ -66,24 +66,31 @@ header[data-testid="stHeader"] {
 }
 
 .block-container {
-    max-width: 1180px;
-    padding: 2rem 2.4rem 5rem;
+    max-width: 1200px;
+    padding: 1.7rem 2rem 4rem;
 }
 
-/* Remove default divider clutter */
-[data-testid="stVerticalBlock"] > div {
-    gap: 0.8rem;
+/* General readable text */
+
+p, li, label, .stMarkdown {
+    color: var(--ink);
+}
+
+[data-testid="stCaptionContainer"],
+.stCaption {
+    color: var(--muted) !important;
 }
 
 /* Brand header */
+
 .brand-row {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 20px;
-    padding: 4px 0 24px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 26px;
+    align-items: center;
+    gap: 18px;
+    padding: 4px 0 22px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 25px;
 }
 
 .brand-lockup {
@@ -93,104 +100,102 @@ header[data-testid="stHeader"] {
 }
 
 .brand-mark {
-    width: 43px;
-    height: 43px;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    background: var(--navy);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 14px;
-    background: var(--forest);
     color: var(--gold-light);
     font-size: 25px;
-    box-shadow: 0 5px 14px rgba(25, 61, 50, 0.12);
 }
 
 .brand-name {
-    color: var(--forest-dark);
+    color: var(--navy);
     font-size: 17px;
     font-weight: 700;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.4px;
 }
 
 .brand-subtitle {
     color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 1.4px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     margin-top: 3px;
 }
 
 .brand-status {
-    border: 1px solid #D9E2D8;
-    background: #EEF3EB;
-    color: var(--forest);
+    background: #E9E6DC;
+    border: 1px solid #D8D0BD;
+    color: #34453D;
     border-radius: 50px;
-    padding: 8px 13px;
-    font-size: 11px;
+    padding: 8px 12px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.7px;
+    letter-spacing: .8px;
 }
 
 /* Hero */
+
 .hero {
     position: relative;
     overflow: hidden;
-    border-radius: 25px;
     background:
-        radial-gradient(ellipse at 90% 5%,
-            rgba(180, 154, 98, 0.16), transparent 35%),
-        linear-gradient(125deg, #193D32 0%, #214B3C 65%, #16382D 100%);
-    padding: 54px 54px 46px;
-    margin: 8px 0 34px;
-    box-shadow: 0 18px 40px rgba(25, 61, 50, 0.10);
-}
-
-.hero::after {
-    content: "✦";
-    position: absolute;
-    right: 7%;
-    top: 10%;
-    font-size: 180px;
-    color: rgba(231, 217, 181, 0.055);
-    line-height: 1;
-    pointer-events: none;
+        radial-gradient(
+            ellipse at 90% 5%,
+            rgba(199, 169, 107, .18),
+            transparent 35%
+        ),
+        linear-gradient(
+            125deg,
+            #17232D 0%,
+            #263B46 62%,
+            #1A302F 100%
+        );
+    border-radius: 24px;
+    padding: 50px 48px 42px;
+    margin: 8px 0 32px;
+    box-shadow: 0 16px 38px rgba(23, 35, 45, .12);
 }
 
 .hero-eyebrow {
-    color: #E2D2A7;
-    font-size: 11px;
+    position: relative;
+    z-index: 1;
+    color: var(--gold-light);
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 2.3px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    margin-bottom: 22px;
+    margin-bottom: 20px;
 }
 
 .hero h1 {
     position: relative;
     z-index: 1;
-    max-width: 760px;
     font-family: 'Playfair Display', Georgia, serif;
     color: #FFFDF7;
-    font-size: clamp(39px, 5.3vw, 66px);
+    font-size: clamp(38px, 5vw, 64px);
     line-height: 1.12;
     font-weight: 500;
-    letter-spacing: -1.8px;
+    letter-spacing: -1.3px;
     margin: 0 0 20px;
 }
 
 .hero h1 em {
-    color: #E2D2A7;
-    font-weight: 500;
+    color: var(--gold-light);
+    font-style: normal;
 }
 
 .hero-copy {
     position: relative;
     z-index: 1;
-    max-width: 610px;
-    color: #D9E4DB;
+    color: #E0E6E4;
+    max-width: 650px;
     font-size: 14px;
     line-height: 1.9;
-    margin-bottom: 30px;
+    margin-bottom: 27px;
 }
 
 .hero-features {
@@ -198,45 +203,44 @@ header[data-testid="stHeader"] {
     z-index: 1;
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
+    gap: 9px;
 }
 
 .hero-feature {
-    border: 1px solid rgba(231, 217, 181, 0.23);
+    border: 1px solid rgba(231, 215, 178, .3);
     border-radius: 50px;
-    padding: 9px 13px;
-    color: #F2EEE0;
+    padding: 8px 12px;
+    color: #F5F0E5;
     font-size: 11px;
-    background: rgba(255, 255, 255, 0.035);
+    background: rgba(255, 255, 255, .035);
 }
 
 /* Section headings */
+
 .section-heading {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    margin: 36px 0 16px;
+    gap: 14px;
+    margin: 34px 0 15px;
 }
 
 .section-number {
-    flex: 0 0 40px;
-    width: 40px;
-    height: 40px;
+    flex: 0 0 39px;
+    height: 39px;
+    border-radius: 12px;
+    background: #E7E9DF;
+    border: 1px solid #D6DDD0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--sage-light);
-    color: var(--forest);
-    border: 1px solid #DCE5D9;
-    border-radius: 13px;
-    font-size: 12px;
+    color: #254638;
+    font-size: 11px;
     font-weight: 700;
 }
 
 .section-title {
     font-family: 'Playfair Display', Georgia, serif;
-    color: var(--forest-dark);
+    color: var(--navy);
     font-size: 25px;
     line-height: 1.25;
     font-weight: 600;
@@ -251,38 +255,22 @@ header[data-testid="stHeader"] {
 }
 
 /* Cards */
-.panel {
-    background: var(--paper);
-    border: 1px solid var(--line);
-    border-radius: 19px;
-    padding: 24px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 18px rgba(30, 48, 37, 0.025);
+
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: var(--white);
+    border-color: var(--border) !important;
+    border-radius: 17px;
 }
 
 .panel-title {
-    color: var(--forest-dark);
+    color: var(--navy);
     font-size: 14px;
     font-weight: 700;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
 }
 
-.panel-copy {
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.7;
-    margin-bottom: 14px;
-}
+/* Input labels */
 
-.micro-label {
-    color: var(--gold);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-}
-
-/* Form controls */
 .stTextInput label,
 .stTextArea label,
 .stSelectbox label,
@@ -292,95 +280,111 @@ header[data-testid="stHeader"] {
 .stNumberInput label,
 .stRadio label,
 .stCheckbox label {
-    color: #34453A !important;
+    color: #263A36 !important;
     font-size: 12px !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
 }
+
+/* Inputs */
 
 .stTextInput input,
 .stTextArea textarea,
 .stNumberInput input {
-    background: #FDFDF9 !important;
-    border: 1px solid #DDE2D8 !important;
+    background: #FFFEFA !important;
+    color: #202B31 !important;
+    border: 1px solid #CFCFC5 !important;
     border-radius: 10px !important;
-    color: var(--ink) !important;
     font-size: 13px !important;
 }
 
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: #737D7A !important;
+    opacity: 1 !important;
+}
+
 .stTextInput input:focus,
-.stTextArea textarea:focus,
-.stNumberInput input:focus {
-    border-color: #73917B !important;
-    box-shadow: 0 0 0 2px rgba(115, 145, 123, 0.12) !important;
+.stTextArea textarea:focus {
+    border-color: #8A9E8B !important;
+    box-shadow: 0 0 0 2px rgba(52, 88, 72, .12) !important;
 }
 
 .stSelectbox [data-baseweb="select"] > div,
 .stMultiSelect [data-baseweb="select"] > div {
-    background: #FDFDF9 !important;
-    border-color: #DDE2D8 !important;
+    background: #FFFEFA !important;
+    border-color: #CFCFC5 !important;
     border-radius: 10px !important;
 }
 
+.stSelectbox [data-baseweb="select"] *,
+.stMultiSelect [data-baseweb="select"] * {
+    color: #202B31 !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] {
+    background: #DDE7DC !important;
+    border: 1px solid #B9CDBA !important;
+}
+
+.stMultiSelect [data-baseweb="tag"] * {
+    color: #244B39 !important;
+}
+
+/* Resume uploader */
+
 .stFileUploader [data-testid="stFileUploaderDropzone"] {
-    background: #F8FAF5;
-    border: 1.5px dashed #C8D5C8;
-    border-radius: 14px;
+    background: #F8F8F2;
+    border: 1.5px dashed #B7C4B5;
+    border-radius: 13px;
+}
+
+.stFileUploader [data-testid="stFileUploaderDropzone"] * {
+    color: #34453D !important;
 }
 
 .stFileUploader [data-testid="stFileUploaderDropzone"] button {
-    border: 1px solid #CAD8CA !important;
-    border-radius: 9px !important;
-    color: var(--forest) !important;
-    background: white !important;
-}
-
-div[data-testid="stForm"] {
-    background: transparent;
-    border: none;
-    padding: 0;
-}
-
-.stSlider [data-baseweb="slider"] {
-    padding-top: 4px;
+    background: #FFFEFA !important;
+    border: 1px solid #B7C4B5 !important;
+    color: #244B39 !important;
 }
 
 /* Buttons */
+
 .stButton > button,
 .stFormSubmitButton > button {
-    background: var(--forest) !important;
+    background: var(--navy) !important;
     color: #FFFDF7 !important;
-    border: 1px solid var(--forest) !important;
-    border-radius: 11px !important;
-    padding: 12px 21px !important;
-    min-height: 46px;
-    font-size: 13px !important;
+    border: 1px solid var(--navy) !important;
+    border-radius: 10px !important;
+    min-height: 45px;
+    padding: 10px 18px !important;
+    font-size: 12px !important;
     font-weight: 700 !important;
-    transition: all 0.18s ease;
 }
 
 .stButton > button:hover,
 .stFormSubmitButton > button:hover {
-    background: #285542 !important;
-    border-color: #285542 !important;
-    box-shadow: 0 5px 15px rgba(25, 61, 50, 0.12);
+    background: #2B454F !important;
+    border-color: #2B454F !important;
 }
 
 .stDownloadButton > button {
-    background: #FDFDF9 !important;
-    color: var(--forest) !important;
-    border: 1px solid #C9D5C9 !important;
+    background: #FFFEFA !important;
+    color: #213F34 !important;
+    border: 1px solid #B7C8B7 !important;
     border-radius: 10px !important;
     font-size: 12px !important;
     font-weight: 700 !important;
     min-height: 42px;
 }
 
-/* Small badges and result panels */
+/* Results */
+
 .skill-chip {
     display: inline-block;
-    background: #EEF3EB;
-    color: #244D39;
-    border: 1px solid #D9E4D6;
+    background: #EAF0E7;
+    color: #244B39;
+    border: 1px solid #D3E0D0;
     padding: 6px 10px;
     border-radius: 7px;
     margin: 3px 4px 3px 0;
@@ -389,28 +393,29 @@ div[data-testid="stForm"] {
 }
 
 .skill-chip.missing {
-    background: #F7F0E2;
-    color: #80663B;
-    border-color: #E9DDBF;
+    background: #F4EBDD;
+    color: #765B2D;
+    border-color: #E4D3B4;
 }
 
 .metric-card {
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 20px;
-    min-height: 126px;
+    background: #FFFEFA;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 19px;
+    min-height: 125px;
 }
 
 .metric-label {
     color: var(--muted);
-    font-size: 11px;
-    font-weight: 600;
-    margin-bottom: 13px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .6px;
+    margin-bottom: 12px;
 }
 
 .metric-value {
-    color: var(--forest-dark);
+    color: #172F2A;
     font-family: 'Playfair Display', Georgia, serif;
     font-size: 34px;
     line-height: 1.1;
@@ -419,24 +424,25 @@ div[data-testid="stForm"] {
 .metric-note {
     color: var(--muted);
     font-size: 10px;
+    line-height: 1.5;
     margin-top: 8px;
 }
 
 .result-banner {
-    background: #EAF0E7;
-    border: 1px solid #D5E1D2;
-    border-radius: 15px;
-    padding: 18px 21px;
-    margin: 16px 0 20px;
+    background: #E7EEE5;
+    border: 1px solid #CEDCCB;
+    border-radius: 14px;
+    padding: 17px 20px;
+    margin: 14px 0 19px;
 }
 
 .result-banner strong {
-    color: var(--forest-dark);
+    color: #203F32;
     font-size: 14px;
 }
 
 .result-banner p {
-    color: #5F7164;
+    color: #40594A;
     font-size: 12px;
     line-height: 1.7;
     margin: 6px 0 0;
@@ -444,32 +450,32 @@ div[data-testid="stForm"] {
 
 .roadmap-card {
     display: flex;
-    gap: 15px;
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 11px;
+    gap: 14px;
+    background: #FFFEFA;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 16px;
+    margin-bottom: 10px;
 }
 
 .roadmap-number {
-    flex: 0 0 34px;
-    height: 34px;
-    border-radius: 11px;
-    background: var(--forest);
-    color: #F2E6C5;
+    flex: 0 0 33px;
+    height: 33px;
+    border-radius: 10px;
+    background: var(--navy);
+    color: var(--gold-light);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
 }
 
 .roadmap-title {
-    color: var(--forest-dark);
+    color: #172F2A;
     font-size: 13px;
     font-weight: 700;
-    margin: 0 0 6px;
+    margin: 0 0 5px;
 }
 
 .roadmap-copy {
@@ -478,26 +484,42 @@ div[data-testid="stForm"] {
     line-height: 1.7;
 }
 
-.footer {
-    border-top: 1px solid var(--line);
-    padding-top: 20px;
-    margin-top: 50px;
-    display: flex;
-    justify-content: space-between;
-    gap: 15px;
-    flex-wrap: wrap;
-    color: var(--muted);
-    font-size: 10px;
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: transparent;
+    color: #4B5A5D !important;
+    font-weight: 600;
+}
+
+.stTabs [aria-selected="true"] {
+    color: #193D32 !important;
+    border-bottom: 3px solid var(--gold) !important;
+}
+
+div[data-testid="stDataFrame"] {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 .stAlert {
-    border-radius: 12px;
+    border-radius: 11px;
 }
 
-[data-testid="stDataFrame"] {
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    overflow: hidden;
+.footer {
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+    margin-top: 45px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 10px;
 }
 
 @media (max-width: 700px) {
@@ -506,21 +528,17 @@ div[data-testid="stForm"] {
     }
 
     .hero {
-        padding: 32px 23px;
-        border-radius: 19px;
+        padding: 31px 22px;
+        border-radius: 18px;
     }
 
     .hero h1 {
-        font-size: 40px;
-        letter-spacing: -1px;
+        font-size: 39px;
+        letter-spacing: -.6px;
     }
 
     .section-title {
         font-size: 22px;
-    }
-
-    .panel {
-        padding: 17px;
     }
 
     .brand-status {
@@ -531,9 +549,9 @@ div[data-testid="stForm"] {
 """, unsafe_allow_html=True)
 
 
-# =========================================================
-# CAREER ROLE LIBRARY
-# =========================================================
+# ============================================================
+# ROLE LIBRARY
+# ============================================================
 
 ROLE_PROFILES = {
     "Data Analyst": {
@@ -543,33 +561,43 @@ ROLE_PROFILES = {
             "Communication", "Problem Solving"
         ],
         "projects": [
-            "Build a sales dashboard using Power BI.",
+            "Create a sales dashboard using Power BI.",
             "Analyse a public dataset using Python and Pandas.",
-            "Create SQL queries for a business reporting database."
+            "Build SQL reports and document business insights."
         ],
         "courses": [
-            "SQL fundamentals and joins",
-            "Excel and Power BI dashboard development",
-            "Python for data analysis"
-        ]
+            ("SQL for Data Analysis", "https://www.kaggle.com/learn/intro-to-sql"),
+            ("Python", "https://www.kaggle.com/learn/python"),
+            ("Power BI learning paths", "https://learn.microsoft.com/training/powerplatform/power-bi/")
+        ],
+        "certifications": [
+            ("Microsoft Power BI Data Analyst", "https://learn.microsoft.com/credentials/certifications/power-bi-data-analyst-associate/")
+        ],
+        "market": "Analytics roles commonly value SQL, spreadsheet fluency, dashboarding, data storytelling and the ability to turn business questions into measurable insights."
     },
+
     "Machine Learning Engineer": {
         "skills": [
             "Python", "Machine Learning", "Statistics", "NumPy",
-            "Pandas", "Scikit-learn", "Deep Learning",
-            "SQL", "Data Preprocessing", "Model Evaluation"
+            "Pandas", "Scikit-learn", "Deep Learning", "SQL",
+            "Data Preprocessing", "Model Evaluation"
         ],
         "projects": [
-            "Build and evaluate a classification model.",
-            "Create a complete data preprocessing pipeline.",
-            "Deploy a machine learning model using Streamlit."
+            "Train and evaluate a classification model.",
+            "Build a reusable data preprocessing pipeline.",
+            "Deploy a machine learning model in Streamlit."
         ],
         "courses": [
-            "Python and scientific computing",
-            "Supervised and unsupervised learning",
-            "Model evaluation and deployment"
-        ]
+            ("Machine Learning Specialization", "https://www.coursera.org/specializations/machine-learning-introduction"),
+            ("Scikit-learn tutorials", "https://scikit-learn.org/stable/tutorial/index.html"),
+            ("Kaggle Learn", "https://www.kaggle.com/learn")
+        ],
+        "certifications": [
+            ("AWS Machine Learning resources", "https://aws.amazon.com/machine-learning/")
+        ],
+        "market": "ML roles often combine Python, data preparation, evaluation, deployment and statistical reasoning. Production skills can matter as much as model selection."
     },
+
     "Python Developer": {
         "skills": [
             "Python", "OOP", "SQL", "Git", "REST API",
@@ -578,15 +606,20 @@ ROLE_PROFILES = {
         ],
         "projects": [
             "Build a REST API with FastAPI.",
-            "Create a database-backed task management app.",
-            "Develop an automated file-processing tool."
+            "Create a database-backed task manager.",
+            "Develop an automated file-processing utility with tests."
         ],
         "courses": [
-            "Python programming and OOP",
-            "REST API development",
-            "Testing, Git and deployment"
-        ]
+            ("Python tutorial", "https://docs.python.org/3/tutorial/"),
+            ("FastAPI tutorial", "https://fastapi.tiangolo.com/tutorial/"),
+            ("Git handbook", "https://guides.github.com/introduction/git-handbook/")
+        ],
+        "certifications": [
+            ("Python Institute certifications", "https://pythoninstitute.org/certification-tracks")
+        ],
+        "market": "Python roles span backend APIs, automation, data tooling and AI integrations. Testing, version control and API design are useful differentiators."
     },
+
     "Full Stack Developer": {
         "skills": [
             "HTML", "CSS", "JavaScript", "React", "Node.js",
@@ -594,33 +627,43 @@ ROLE_PROFILES = {
             "Responsive Design"
         ],
         "projects": [
-            "Build a responsive portfolio with a contact form.",
-            "Develop a full-stack task management application.",
-            "Create a login system with database integration."
+            "Build a responsive portfolio website.",
+            "Develop a full-stack task manager.",
+            "Create authentication and database-backed CRUD features."
         ],
         "courses": [
-            "HTML, CSS and modern JavaScript",
-            "React and frontend architecture",
-            "Backend APIs and database integration"
-        ]
+            ("MDN web development", "https://developer.mozilla.org/en-US/docs/Learn"),
+            ("React documentation", "https://react.dev/learn"),
+            ("Node.js learning", "https://nodejs.org/en/learn")
+        ],
+        "certifications": [
+            ("freeCodeCamp certifications", "https://www.freecodecamp.org/learn/")
+        ],
+        "market": "Full-stack work typically rewards frontend fundamentals, API integration, database knowledge, secure authentication and deployment."
     },
+
     "Cloud Engineer": {
         "skills": [
-            "AWS", "Azure", "Google Cloud", "Linux",
-            "Networking", "Docker", "CI/CD", "Python",
-            "Security", "Monitoring"
+            "AWS", "Azure", "Google Cloud", "Linux", "Networking",
+            "Docker", "CI/CD", "Python", "Security", "Monitoring"
         ],
         "projects": [
-            "Deploy a web application to a cloud platform.",
-            "Containerise an application using Docker.",
-            "Create a basic CI/CD deployment pipeline."
+            "Deploy an application to a cloud platform.",
+            "Containerise a service using Docker.",
+            "Create a CI/CD pipeline with monitoring."
         ],
         "courses": [
-            "Cloud fundamentals and IAM",
-            "Linux, networking and Docker",
-            "Cloud deployment and monitoring"
-        ]
+            ("AWS Skill Builder", "https://skillbuilder.aws/"),
+            ("Microsoft Learn Azure", "https://learn.microsoft.com/training/azure/"),
+            ("Google Cloud training", "https://cloud.google.com/learn/training")
+        ],
+        "certifications": [
+            ("AWS certifications", "https://aws.amazon.com/certification/"),
+            ("Azure certifications", "https://learn.microsoft.com/credentials/")
+        ],
+        "market": "Cloud roles often require networking, Linux, access management, automation, monitoring, cost awareness and secure deployment."
     },
+
     "Cybersecurity Analyst": {
         "skills": [
             "Networking", "Linux", "Python", "SIEM",
@@ -629,33 +672,43 @@ ROLE_PROFILES = {
             "Vulnerability Assessment", "Risk Management"
         ],
         "projects": [
-            "Analyse sample security logs for suspicious activity.",
-            "Create a basic network traffic analysis report.",
-            "Build a security incident response checklist."
+            "Analyse sample security logs for suspicious events.",
+            "Write a network traffic analysis report in a legal lab.",
+            "Create an incident response playbook."
         ],
         "courses": [
-            "Networking and security fundamentals",
-            "Log analysis and incident response",
-            "Vulnerability assessment in authorised labs"
-        ]
+            ("Cisco Networking Academy", "https://www.netacad.com/"),
+            ("Microsoft security learning", "https://learn.microsoft.com/training/security/"),
+            ("TryHackMe learning paths", "https://tryhackme.com/paths")
+        ],
+        "certifications": [
+            ("CompTIA Security+", "https://www.comptia.org/certifications/security")
+        ],
+        "market": "Security work values networking fundamentals, log analysis, incident handling, risk communication and safe, authorised lab practice."
     },
+
     "Software Engineer": {
         "skills": [
             "Python", "Java", "Data Structures", "Algorithms",
-            "OOP", "SQL", "Git", "Testing",
-            "System Design", "Problem Solving"
+            "OOP", "SQL", "Git", "Testing", "System Design",
+            "Problem Solving"
         ],
         "projects": [
-            "Build a well-tested application with clear architecture.",
+            "Build a tested application with clear architecture.",
             "Implement common data structures and algorithms.",
-            "Create a database-backed application with automated tests."
+            "Create a database-backed service with automated tests."
         ],
         "courses": [
-            "Data structures and algorithms",
-            "Object-oriented programming and testing",
-            "Databases and software design"
-        ]
+            ("CS50", "https://cs50.harvard.edu/x/"),
+            ("LeetCode study plans", "https://leetcode.com/studyplan/"),
+            ("Git handbook", "https://guides.github.com/introduction/git-handbook/")
+        ],
+        "certifications": [
+            ("Oracle Java certifications", "https://education.oracle.com/java-se")
+        ],
+        "market": "Software engineering roles often evaluate problem-solving, code quality, data structures, testing and the ability to explain technical decisions."
     },
+
     "UI/UX Designer": {
         "skills": [
             "Figma", "Wireframing", "Prototyping", "User Research",
@@ -663,15 +716,19 @@ ROLE_PROFILES = {
             "Design Systems", "Accessibility", "Communication"
         ],
         "projects": [
-            "Redesign a mobile app and document your design decisions.",
-            "Create a clickable prototype for a booking experience.",
-            "Conduct a small usability test and report findings."
+            "Redesign a mobile app and explain design decisions.",
+            "Prototype a booking flow and test it with users.",
+            "Build a small accessible design system."
         ],
         "courses": [
-            "User research and information architecture",
-            "Wireframing and interactive prototyping",
-            "Accessibility and design systems"
-        ]
+            ("Figma learning resources", "https://help.figma.com/hc/en-us/categories/360002051613-Learn-design"),
+            ("Interaction Design Foundation", "https://www.interaction-design.org/"),
+            ("Google UX Design", "https://grow.google/certificates/ux-design/")
+        ],
+        "certifications": [
+            ("Google UX Design Certificate", "https://grow.google/certificates/ux-design/")
+        ],
+        "market": "UX roles commonly value research, clear interaction flows, accessible design, prototyping and evidence that design choices solve user problems."
     }
 }
 
@@ -681,33 +738,23 @@ SKILL_LIBRARY = sorted(set(
     for profile in ROLE_PROFILES.values()
     for skill in profile["skills"]
 ) | {
-    "C", "C++", "C#", "Java", "JavaScript", "TypeScript",
-    "PHP", "R", "Go", "Rust", "Kotlin", "Swift",
-    "Django", "Flask", "Spring Boot", "Angular", "Vue",
-    "PostgreSQL", "MySQL", "MongoDB", "SQLite",
-    "Tableau", "TensorFlow", "PyTorch", "Keras",
-    "NLP", "Computer Vision", "Generative AI", "LLMs",
-    "GitHub", "Kubernetes", "Terraform", "Jenkins",
-    "Excel", "Power BI", "Pandas", "NumPy", "Matplotlib",
-    "Data Analysis", "Machine Learning", "Deep Learning",
-    "Communication", "Teamwork", "Leadership",
-    "Critical Thinking", "Agile", "Project Management",
-    "Figma", "HTML", "CSS", "React", "Node.js",
-    "REST API", "FastAPI", "Scikit-learn"
-))
+    "C", "C++", "C#", "JavaScript", "TypeScript", "PHP",
+    "R", "Go", "Rust", "Kotlin", "Swift", "Django",
+    "Flask", "Spring Boot", "Angular", "Vue", "PostgreSQL",
+    "MySQL", "MongoDB", "SQLite", "Tableau", "TensorFlow",
+    "PyTorch", "Keras", "NLP", "Computer Vision",
+    "Generative AI", "LLMs", "GitHub", "Kubernetes",
+    "Terraform", "Jenkins", "Matplotlib", "Teamwork",
+    "Leadership", "Critical Thinking", "Agile",
+    "Project Management", "FastAPI", "Scikit-learn"
+}))
 
 
-# =========================================================
-# HELPERS
-# =========================================================
-
-def safe_html(value):
-    """Escape user-provided text before rendering it in HTML."""
-    return html.escape(str(value))
-
+# ============================================================
+# RESUME PARSING
+# ============================================================
 
 def extract_resume_text(uploaded_file):
-    """Extract text from PDF, DOCX or TXT files."""
     if uploaded_file is None:
         return ""
 
@@ -716,22 +763,22 @@ def extract_resume_text(uploaded_file):
     try:
         if filename.endswith(".pdf"):
             reader = PdfReader(uploaded_file)
-            pages = []
-            for page in reader.pages:
-                pages.append(page.extract_text() or "")
-            return "\n".join(pages)
+            return "\n".join(
+                page.extract_text() or ""
+                for page in reader.pages
+            )
 
         if filename.endswith(".docx"):
             document = Document(uploaded_file)
-            paragraphs = [
-                paragraph.text for paragraph in document.paragraphs
-            ]
+            parts = [p.text for p in document.paragraphs]
+
             for table in document.tables:
                 for row in table.rows:
-                    paragraphs.append(
+                    parts.append(
                         " ".join(cell.text for cell in row.cells)
                     )
-            return "\n".join(paragraphs)
+
+            return "\n".join(parts)
 
         if filename.endswith(".txt"):
             return uploaded_file.getvalue().decode(
@@ -739,14 +786,16 @@ def extract_resume_text(uploaded_file):
             )
 
     except Exception as error:
-        st.error(f"Could not read the resume: {error}")
-        return ""
+        st.error(f"Resume parsing failed: {error}")
 
     return ""
 
 
+# ============================================================
+# SKILL DETECTION
+# ============================================================
+
 def detect_skills(text):
-    """Find known skills mentioned in resume or job text."""
     text_lower = text.lower()
     found = []
 
@@ -756,41 +805,133 @@ def detect_skills(text):
             + re.escape(skill.lower())
             + r"(?![a-z0-9+#])"
         )
+
         if re.search(pattern, text_lower):
             found.append(skill)
 
     return sorted(set(found), key=str.lower)
 
 
-def calculate_text_similarity(profile_text, target_text):
-    """Estimate textual similarity using TF-IDF."""
-    if not profile_text.strip() or not target_text.strip():
-        return 0
+# ============================================================
+# OPTIONAL SBERT SEMANTIC MATCHING
+# ============================================================
+
+@st.cache_resource(show_spinner=False)
+def load_sbert_model():
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2"
+    )
+
+
+def calculate_similarity(profile_text, job_text, use_sbert=False):
+    if not profile_text.strip() or not job_text.strip():
+        return 0, "Insufficient text"
+
+    if use_sbert:
+        try:
+            model = load_sbert_model()
+
+            embeddings = model.encode(
+                [profile_text, job_text],
+                normalize_embeddings=True
+            )
+
+            score = float(embeddings[0] @ embeddings[1]) * 100
+            score = max(0, min(100, round(score)))
+
+            return score, "SBERT semantic similarity"
+
+        except Exception as error:
+            st.warning(
+                "SBERT could not be loaded. Using TF-IDF instead. "
+                f"Reason: {type(error).__name__}"
+            )
 
     try:
         vectorizer = TfidfVectorizer(
             stop_words="english",
-            ngram_range=(1, 2),
+            ngram_range=(1, 2)
         )
+
         matrix = vectorizer.fit_transform(
-            [profile_text, target_text]
+            [profile_text, job_text]
         )
+
         similarity = cosine_similarity(
             matrix[0:1], matrix[1:2]
         )[0][0]
-        return round(float(similarity) * 100)
-    except ValueError:
-        return 0
 
+        return round(float(similarity) * 100), "TF-IDF text similarity"
+
+    except ValueError:
+        return 0, "Insufficient text vocabulary"
+
+
+# ============================================================
+# MATCHING ENGINE
+# ============================================================
+
+def analyse_match(profile_text, user_skills, job_text, role, required_skills):
+    user_skill_set = {skill.lower() for skill in user_skills}
+
+    matched = [
+        skill for skill in required_skills
+        if skill.lower() in user_skill_set
+    ]
+
+    missing = [
+        skill for skill in required_skills
+        if skill.lower() not in user_skill_set
+    ]
+
+    coverage = (
+        round(len(matched) / len(required_skills) * 100)
+        if required_skills else 0
+    )
+
+    use_sbert = st.session_state.get("use_sbert", False)
+
+    similarity, method = calculate_similarity(
+        profile_text,
+        job_text,
+        use_sbert
+    )
+
+    score = round(0.65 * coverage + 0.35 * similarity)
+
+    if not user_skills and not profile_text.strip():
+        score = 0
+
+    return {
+        "role": role,
+        "score": score,
+        "coverage": coverage,
+        "similarity": similarity,
+        "method": method,
+        "matched": matched,
+        "missing": missing,
+        "required": required_skills,
+        "job_text": job_text
+    }
+
+
+# ============================================================
+# PDF REPORT
+# ============================================================
 
 def build_pdf(report):
-    """Create a simple downloadable PDF report."""
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
     pdf.set_font("Helvetica", "B", 20)
-    pdf.cell(0, 12, "SkillBridge AI", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_text_color(23, 35, 45)
+    pdf.cell(
+        0, 12, "SkillBridge AI",
+        new_x="LMARGIN", new_y="NEXT"
+    )
 
     pdf.set_font("Helvetica", "", 11)
     pdf.cell(
@@ -800,8 +941,9 @@ def build_pdf(report):
     pdf.ln(4)
 
     def clean(value):
-        value = str(value)
-        return value.encode("latin-1", errors="replace").decode("latin-1")
+        return str(value).encode(
+            "latin-1", errors="replace"
+        ).decode("latin-1")
 
     for heading, value in report.items():
         pdf.set_font("Helvetica", "B", 12)
@@ -814,713 +956,941 @@ def build_pdf(report):
     return bytes(pdf.output())
 
 
+# ============================================================
+# DISPLAY HELPERS
+# ============================================================
+
 def section_heading(number, title, description):
     st.markdown(f"""
     <div class="section-heading">
-        <div class="section-number">{number}</div>
-        <div>
-            <div class="section-title">{title}</div>
-            <div class="section-description">{description}</div>
-        </div>
+      <div class="section-number">{number}</div>
+      <div>
+        <div class="section-title">{html.escape(title)}</div>
+        <div class="section-description">{html.escape(description)}</div>
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
 
 def render_chips(items, missing=False):
     if not items:
-        st.caption("No skills identified in this category.")
+        st.caption("No recognised skills in this category yet.")
         return
 
-    chip_class = "skill-chip missing" if missing else "skill-chip"
+    css_class = "skill-chip missing" if missing else "skill-chip"
+
     chips = "".join(
-        f'<span class="{chip_class}">{safe_html(skill)}</span>'
+        f'<span class="{css_class}">{html.escape(skill)}</span>'
         for skill in items
     )
+
     st.markdown(chips, unsafe_allow_html=True)
 
 
-# =========================================================
+def render_metric(label, value, note):
+    st.markdown(f"""
+    <div class="metric-card">
+      <div class="metric-label">{html.escape(label)}</div>
+      <div class="metric-value">{html.escape(str(value))}</div>
+      <div class="metric-note">{html.escape(note)}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ============================================================
 # HEADER AND HERO
-# =========================================================
+# ============================================================
 
 st.markdown("""
 <div class="brand-row">
-    <div class="brand-lockup">
-        <div class="brand-mark">✦</div>
-        <div>
-            <div class="brand-name">SkillBridge AI</div>
-            <div class="brand-subtitle">Career Intelligence</div>
-        </div>
+  <div class="brand-lockup">
+    <div class="brand-mark">✦</div>
+    <div>
+      <div class="brand-name">SkillBridge AI</div>
+      <div class="brand-subtitle">Career Intelligence</div>
     </div>
-    <div class="brand-status">YOUR CAREER WORKSPACE</div>
+  </div>
+  <div class="brand-status">YOUR PERSONAL CAREER WORKSPACE</div>
 </div>
 
 <div class="hero">
-    <div class="hero-eyebrow">A more considered approach to your career</div>
-    <h1>Build your next career move<br><em>with clarity.</em></h1>
-    <div class="hero-copy">
-        Your skills, experience, and ambitions — brought together
-        in one personal career workspace. Discover your role alignment,
-        identify skill gaps, and find your next steps.
-    </div>
-    <div class="hero-features">
-        <span class="hero-feature">✦ Resume insights</span>
-        <span class="hero-feature">Skill gap mapping</span>
-        <span class="hero-feature">Personal learning roadmap</span>
-    </div>
+  <div class="hero-eyebrow">A more considered approach to your career</div>
+  <h1>Build your next career move<br><em>with clarity.</em></h1>
+  <div class="hero-copy">
+    Your skills, experience, and ambitions — brought together in one
+    personal career workspace. Discover role alignment, identify skill
+    gaps, and turn your next steps into a practical plan.
+  </div>
+  <div class="hero-features">
+    <span class="hero-feature">✦ Resume intelligence</span>
+    <span class="hero-feature">Skill gap mapping</span>
+    <span class="hero-feature">Semantic job matching</span>
+    <span class="hero-feature">Personal learning roadmap</span>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
 
-# =========================================================
-# PROFILE INPUTS
-# =========================================================
+# ============================================================
+# INPUT 01 — PROFILE
+# No separate experience-years input.
+# ============================================================
 
 section_heading(
     "01",
     "Tell us about yourself",
-    "Build your profile so your career recommendations have context."
+    "Build your profile so your recommendations have context."
 )
 
 with st.container(border=True):
-    st.markdown(
-        '<div class="micro-label">YOUR PROFILE</div>',
-        unsafe_allow_html=True
+    col1, col2 = st.columns(2)
+
+    with col1:
+        full_name = st.text_input(
+            "Full name",
+            placeholder="Enter your name"
+        )
+
+        education = st.selectbox(
+            "Education",
+            [
+                "Select education",
+                "Diploma",
+                "Bachelor's degree",
+                "Master's degree",
+                "PhD",
+                "Other"
+            ]
+        )
+
+    with col2:
+        experience_level = st.selectbox(
+            "Experience level",
+            [
+                "Fresher / Student",
+                "Entry-level professional",
+                "Mid-level professional",
+                "Senior professional",
+                "Career switcher"
+            ]
+        )
+
+        current_status = st.selectbox(
+            "Current status",
+            [
+                "Student",
+                "Looking for a job",
+                "Currently employed",
+                "Freelancer",
+                "Career switcher"
+            ]
+        )
+
+    interests = st.text_input(
+        "Career interests (optional)",
+        placeholder="e.g. building apps, analysing data, research"
     )
-    st.markdown("")
 
-    with st.form("career_profile_form", clear_on_submit=False):
 
-        col1, col2 = st.columns(2)
+# ============================================================
+# INPUT 02 — RESUME AND SKILLS
+# No manual resume-text entry field.
+# ============================================================
 
-        with col1:
-            full_name = st.text_input(
-                "Full name",
-                placeholder="How should we address you?",
-            )
-            education = st.selectbox(
-                "Education",
-                [
-                    "Select education",
-                    "Diploma",
-                    "Bachelor's degree",
-                    "Master's degree",
-                    "PhD",
-                    "Other",
-                ],
-            )
-            experience_level = st.selectbox(
-                "Experience level",
-                [
-                    "Fresher / Student",
-                    "Entry level",
-                    "Mid-level professional",
-                    "Senior professional",
-                    "Career switcher",
-                ],
-            )
+section_heading(
+    "02",
+    "Your resume and skills",
+    "Upload your resume and select the skills you can demonstrate."
+)
 
-        with col2:
-            current_status = st.selectbox(
-                "Current status",
-                [
-                    "Student",
-                    "Looking for a job",
-                    "Currently employed",
-                    "Freelancer",
-                    "Career switcher",
-                ],
-            )
-            years_experience = st.number_input(
-                "Years of experience",
-                min_value=0,
-                max_value=50,
-                value=0,
-                step=1,
-            )
-            target_role = st.selectbox(
-                "Career you want to explore",
-                list(ROLE_PROFILES.keys()) + ["Custom job description"],
-            )
+with st.container(border=True):
+    uploaded_resume = st.file_uploader(
+        "Upload your resume",
+        type=["pdf", "docx", "txt"],
+        help="Supported formats: PDF, DOCX and TXT."
+    )
 
-        st.markdown("---")
+    known_skills = st.multiselect(
+        "Skills you already know",
+        options=SKILL_LIBRARY,
+        placeholder="Search and select your skills..."
+    )
 
-        section_heading(
-            "02",
-            "Your resume and skills",
-            "Add your experience and tell us what you already know."
+    custom_skills = st.text_input(
+        "Additional skills (optional)",
+        placeholder="Enter comma-separated skills not listed above"
+    )
+
+    skill_confidence = st.slider(
+        "Self-rated confidence in your selected skills",
+        min_value=1,
+        max_value=5,
+        value=3
+    )
+
+    st.caption(
+        "Your confidence rating is contextual information, "
+        "not a verified proficiency test."
+    )
+
+
+# ============================================================
+# INPUT 03 — TARGET OPPORTUNITY
+# ============================================================
+
+section_heading(
+    "03",
+    "Choose your target opportunity",
+    "Compare your profile with a role or a specific job posting."
+)
+
+with st.container(border=True):
+    target_mode = st.radio(
+        "Comparison mode",
+        [
+            "Career role",
+            "Specific job description",
+            "Compare multiple roles"
+        ],
+        horizontal=True
+    )
+
+    if target_mode == "Career role":
+        target_role = st.selectbox(
+            "Target role",
+            list(ROLE_PROFILES.keys())
         )
+        job_description = ""
 
-        uploaded_resume = st.file_uploader(
-            "Upload your resume",
-            type=["pdf", "docx", "txt"],
-            help="Supported formats: PDF, DOCX and TXT. "
-                 "The maximum upload size is controlled by Streamlit.",
-        )
+    elif target_mode == "Specific job description":
+        target_role = "Custom job description"
 
-        resume_text_input = st.text_area(
-            "Resume text / professional summary",
+        job_description = st.text_area(
+            "Paste the job description",
             placeholder=(
-                "Your resume text will be extracted after you submit. "
-                "You can also paste your experience, projects and achievements here."
+                "Paste responsibilities, required skills "
+                "and qualifications from the job posting..."
             ),
-            height=140,
-            help="You can paste your resume text here if you don't have a file.",
+            height=160
         )
-
-        known_skills = st.multiselect(
-            "Skills you already know",
-            options=SKILL_LIBRARY,
-            placeholder="Search and select your skills...",
-        )
-
-        custom_skills = st.text_input(
-            "Other skills (optional)",
-            placeholder="e.g. Salesforce, SAP, prompt engineering",
-        )
-
-        skill_confidence = st.slider(
-            "How confident are you in your selected skills?",
-            min_value=1,
-            max_value=5,
-            value=3,
-            help="This helps contextualise the recommendations. "
-                 "It is not a validated proficiency test.",
-        )
-
-        interests = st.text_input(
-            "Interests and preferred work",
-            placeholder="e.g. solving business problems, building apps, research",
-        )
-
-        section_heading(
-            "03",
-            "Choose your target opportunity",
-            "Compare your profile with a career role or a specific job posting."
-        )
-
-        custom_job_description = ""
-        if target_role == "Custom job description":
-            custom_job_description = st.text_area(
-                "Paste the job description",
-                placeholder=(
-                    "Paste the job responsibilities, requirements "
-                    "and qualifications from the job posting..."
-                ),
-                height=180,
-            )
-
-        submitted = st.form_submit_button(
-            "✦  Generate my career analysis",
-            use_container_width=True,
-        )
-
-
-# =========================================================
-# PROCESS SUBMISSION
-# =========================================================
-
-if submitted:
-
-    if not full_name.strip():
-        st.error("Please enter your name to continue.")
-
-    elif target_role == "Custom job description" and not custom_job_description.strip():
-        st.error("Please paste a job description for a custom comparison.")
 
     else:
-        resume_text = extract_resume_text(uploaded_resume)
-
-        if resume_text_input.strip():
-            resume_text = (
-                resume_text + "\n" + resume_text_input.strip()
-            ).strip()
-
-        custom_skill_list = [
-            skill.strip()
-            for skill in custom_skills.split(",")
-            if skill.strip()
-        ]
-
-        manually_selected_skills = sorted(
-            set(known_skills + custom_skill_list),
-            key=str.lower,
+        target_role = st.selectbox(
+            "Primary role for the roadmap",
+            list(ROLE_PROFILES.keys())
         )
 
-        resume_detected_skills = detect_skills(resume_text)
-
-        all_user_skills = sorted(
-            set(manually_selected_skills + resume_detected_skills),
-            key=str.lower,
+        job_description = st.text_area(
+            "Optional job description",
+            placeholder="Paste a job description to include in the comparison...",
+            height=120
         )
 
-        if target_role == "Custom job description":
-            job_text = custom_job_description
-            target_skills = detect_skills(job_text)
 
-            if not target_skills:
-                st.warning(
-                    "No recognised skills were detected in the job description. "
-                    "Try including the required technical skills explicitly."
+with st.expander("Advanced matching settings"):
+    use_sbert = st.checkbox(
+        "Use SBERT semantic matching",
+        value=False,
+        help=(
+            "Downloads a sentence-transformer model on first use. "
+            "If unavailable, the app falls back to TF-IDF."
+        )
+    )
+
+    st.session_state["use_sbert"] = use_sbert
+
+    st.caption(
+        "Explainable score: 65% recognised skill coverage + "
+        "35% text similarity. This is a heuristic, not a hiring probability."
+    )
+
+
+generate = st.button(
+    "✦  Generate career intelligence report",
+    use_container_width=True
+)
+
+
+# ============================================================
+# RUN ANALYSIS
+# ============================================================
+
+if generate:
+
+    if not full_name.strip():
+        st.error("Please enter your name.")
+
+    elif (
+        target_mode == "Specific job description"
+        and not job_description.strip()
+    ):
+        st.error("Please paste a job description to analyse.")
+
+    else:
+        with st.spinner("Analysing your profile and target opportunity..."):
+
+            resume_text = extract_resume_text(uploaded_resume)
+
+            custom_skill_list = [
+                skill.strip()
+                for skill in custom_skills.split(",")
+                if skill.strip()
+            ]
+
+            resume_skills = detect_skills(resume_text)
+
+            user_skills = sorted(
+                set(known_skills + custom_skill_list + resume_skills),
+                key=str.lower
+            )
+
+            profile_text = " ".join([
+                resume_text,
+                " ".join(user_skills),
+                interests,
+                education,
+                experience_level,
+                current_status
+            ])
+
+            if target_mode == "Specific job description":
+                primary_role = "Custom job description"
+                primary_job_text = job_description
+                primary_required = detect_skills(job_description)
+
+            else:
+                primary_role = target_role
+                role_data = ROLE_PROFILES[target_role]
+
+                primary_job_text = " ".join(role_data["skills"])
+                primary_required = list(role_data["skills"])
+
+                if job_description.strip():
+                    primary_job_text += " " + job_description
+                    primary_required = sorted(set(
+                        primary_required + detect_skills(job_description)
+                    ))
+
+            primary = analyse_match(
+                profile_text,
+                user_skills,
+                primary_job_text,
+                primary_role,
+                primary_required
+            )
+
+            if target_mode == "Compare multiple roles":
+                comparisons = []
+
+                for role, data in ROLE_PROFILES.items():
+                    comparisons.append(
+                        analyse_match(
+                            profile_text,
+                            user_skills,
+                            " ".join(data["skills"]),
+                            role,
+                            data["skills"]
+                        )
+                    )
+
+                if job_description.strip():
+                    comparisons.append(
+                        analyse_match(
+                            profile_text,
+                            user_skills,
+                            job_description,
+                            "Pasted job description",
+                            detect_skills(job_description)
+                        )
+                    )
+
+                comparisons.sort(
+                    key=lambda item: item["score"],
+                    reverse=True
                 )
-        else:
-            profile = ROLE_PROFILES[target_role]
-            target_skills = profile["skills"]
-            job_text = " ".join(target_skills)
 
-        if not all_user_skills and not resume_text.strip():
-            st.warning(
-                "For a more useful analysis, add some known skills "
-                "or provide your resume text."
-            )
+            else:
+                comparisons = [primary]
 
-        if not target_skills:
-            target_skills = []
+            if primary["score"] >= 75:
+                fit_label = "Strong profile overlap"
+                fit_copy = (
+                    "Your profile overlaps with many recognised requirements. "
+                    "Strengthen your evidence with projects and measurable outcomes."
+                )
 
-        matched_skills = [
-            skill for skill in target_skills
-            if any(
-                skill.lower() == user_skill.lower()
-                for user_skill in all_user_skills
-            )
-        ]
+            elif primary["score"] >= 45:
+                fit_label = "Developing profile overlap"
+                fit_copy = (
+                    "You have some relevant overlap. Focus on priority gaps "
+                    "and demonstrate your skills through practical work."
+                )
 
-        missing_skills = [
-            skill for skill in target_skills
-            if not any(
-                skill.lower() == user_skill.lower()
-                for user_skill in all_user_skills
-            )
-        ]
+            else:
+                fit_label = "Early-stage profile overlap"
+                fit_copy = (
+                    "Several requirements may need development. Start with "
+                    "the foundations and build evidence through projects."
+                )
 
-        coverage = (
-            round(len(matched_skills) / len(target_skills) * 100)
-            if target_skills else 0
-        )
+            st.session_state["career_results"] = {
+                "name": full_name.strip(),
+                "education": education,
+                "experience_level": experience_level,
+                "status": current_status,
+                "interests": interests,
+                "confidence": skill_confidence,
+                "resume_text": resume_text,
+                "user_skills": user_skills,
+                "primary": primary,
+                "comparisons": comparisons,
+                "fit_label": fit_label,
+                "fit_copy": fit_copy,
+                "target_mode": target_mode,
+                "target_role": target_role,
+                "date": date.today().isoformat()
+            }
 
-        profile_text = " ".join([
-            resume_text,
-            " ".join(all_user_skills),
-            interests,
-            education,
-            experience_level,
-        ])
-
-        similarity = calculate_text_similarity(
-            profile_text, job_text
-        )
-
-        # This is a heuristic indicator, not a validated hiring prediction.
-        career_fit = round(coverage * 0.65 + similarity * 0.35)
-
-        if not all_user_skills and not resume_text.strip():
-            career_fit = 0
-
-        if career_fit >= 75:
-            fit_label = "Strong alignment"
-            fit_description = (
-                "Your provided profile has substantial overlap with the "
-                "selected requirements. Strengthen your evidence with projects "
-                "and measurable achievements."
-            )
-        elif career_fit >= 45:
-            fit_label = "Developing alignment"
-            fit_description = (
-                "You have some relevant overlap. Prioritise the missing skills "
-                "and demonstrate them through focused projects."
-            )
-        else:
-            fit_label = "Early-stage alignment"
-            fit_description = (
-                "There are gaps between your current profile and the selected "
-                "requirements. Start with the fundamentals and build evidence "
-                "through practical work."
-            )
-
-        if target_role == "Custom job description":
-            suggested_projects = [
-                "Build a small project demonstrating one important requirement "
-                "from the job description.",
-                "Create a portfolio case study explaining your approach, "
-                "decisions and results.",
-                "Practise a realistic task related to the role and document "
-                "your solution.",
-            ]
-            suggested_courses = [
-                "Study the fundamentals of your highest-priority missing skill.",
-                "Complete guided exercises using the tools named in the job post.",
-                "Practise communicating your project decisions and outcomes.",
-            ]
-        else:
-            suggested_projects = ROLE_PROFILES[target_role]["projects"]
-            suggested_courses = ROLE_PROFILES[target_role]["courses"]
-
-        st.session_state["career_results"] = {
-            "full_name": full_name.strip(),
-            "education": education,
-            "experience_level": experience_level,
-            "current_status": current_status,
-            "years_experience": int(years_experience),
-            "target_role": target_role,
-            "interests": interests,
-            "skill_confidence": skill_confidence,
-            "resume_text": resume_text,
-            "user_skills": all_user_skills,
-            "target_skills": target_skills,
-            "matched_skills": matched_skills,
-            "missing_skills": missing_skills,
-            "coverage": coverage,
-            "similarity": similarity,
-            "career_fit": career_fit,
-            "fit_label": fit_label,
-            "fit_description": fit_description,
-            "projects": suggested_projects,
-            "courses": suggested_courses,
-            "job_text": job_text,
-            "generated_date": date.today().isoformat(),
-        }
-
-        st.success("Your career analysis has been generated.")
+        st.success("Your career analysis is ready.")
 
 
-# =========================================================
+# ============================================================
 # RESULTS
-# =========================================================
+# ============================================================
 
 results = st.session_state.get("career_results")
 
 if results:
 
-    st.markdown("---")
+    primary = results["primary"]
 
     section_heading(
         "04",
         "Your career snapshot",
-        f"Personalised analysis for {results['full_name']}."
+        f"Analysis for {results['name']} · {primary['role']}"
     )
 
     st.markdown(f"""
     <div class="result-banner">
-        <strong>{safe_html(results['fit_label'])}</strong>
-        <p>{safe_html(results['fit_description'])}</p>
+      <strong>{html.escape(results['fit_label'])}</strong>
+      <p>{html.escape(results['fit_copy'])}
+      The score is an explainable heuristic, not a validated hiring prediction.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    m1, m2, m3 = st.columns(3)
+    m1, m2, m3, m4 = st.columns(4)
 
     with m1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">CAREER ALIGNMENT INDICATOR</div>
-            <div class="metric-value">{results['career_fit']}%</div>
-            <div class="metric-note">Heuristic estimate, not a hiring probability</div>
-        </div>
-        """, unsafe_allow_html=True)
+        render_metric(
+            "MATCH INDICATOR",
+            f"{primary['score']}%",
+            "Weighted profile overlap"
+        )
 
     with m2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">REQUIRED SKILLS COVERED</div>
-            <div class="metric-value">{results['coverage']}%</div>
-            <div class="metric-note">
-                {len(results['matched_skills'])} of
-                {len(results['target_skills'])} recognised target skills
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        render_metric(
+            "SKILL COVERAGE",
+            f"{primary['coverage']}%",
+            f"{len(primary['matched'])} of {len(primary['required'])} requirements"
+        )
 
     with m3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">SKILLS TO PRIORITISE</div>
-            <div class="metric-value">{len(results['missing_skills'])}</div>
-            <div class="metric-note">Recognised requirements not in your provided skill list</div>
-        </div>
-        """, unsafe_allow_html=True)
+        render_metric(
+            "MATCHED SKILLS",
+            len(primary["matched"]),
+            "Recognised target skills in your profile"
+        )
+
+    with m4:
+        render_metric(
+            "SKILL GAPS",
+            len(primary["missing"]),
+            "Requirements to prioritise"
+        )
 
     st.markdown("")
 
-    left, right = st.columns([1, 1])
+    with st.container(border=True):
+        st.markdown(
+            '<div class="panel-title">Explainable match score</div>',
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            f"- **Recognised skill coverage (65%):** {primary['coverage']}%.\n"
+            f"- **Text similarity (35%):** {primary['similarity']}% using {primary['method']}.\n"
+            f"- **Final indicator:** 65% × skill coverage + 35% × text similarity."
+        )
+
+        st.caption(
+            "Keyword extraction may miss synonyms. Self-reported skills are "
+            "not independently verified, and a high score does not guarantee employment."
+        )
+
+
+    # --------------------------------------------------------
+    # SKILL STRENGTH AND MISSING SKILLS
+    # --------------------------------------------------------
+
+    section_heading(
+        "05",
+        "Skill strength and missing skills",
+        "Review your existing overlap and prioritise the gaps."
+    )
+
+    left, right = st.columns(2)
 
     with left:
         with st.container(border=True):
             st.markdown(
-                '<div class="panel-title">Your profile</div>',
+                '<div class="panel-title">Skills already aligned</div>',
                 unsafe_allow_html=True
             )
-            st.markdown(
-                f"**Name:** {results['full_name']}"
-            )
-            st.markdown(
-                f"**Education:** {results['education']}"
-            )
-            st.markdown(
-                f"**Experience:** {results['experience_level']}"
-            )
-            st.markdown(
-                f"**Current status:** {results['current_status']}"
-            )
-            st.markdown(
-                f"**Years of experience:** {results['years_experience']}"
-            )
-            st.markdown(
-                f"**Target opportunity:** {results['target_role']}"
-            )
+            render_chips(primary["matched"])
 
     with right:
         with st.container(border=True):
             st.markdown(
-                '<div class="panel-title">Your strongest evidence</div>',
+                '<div class="panel-title">Skills to prioritise</div>',
                 unsafe_allow_html=True
             )
-            if results["user_skills"]:
-                render_chips(results["user_skills"])
-            else:
-                st.info(
-                    "No skills have been identified yet. Add your skills "
-                    "or resume details and generate the analysis again."
+            render_chips(primary["missing"], missing=True)
+
+    if primary["required"]:
+        gap_df = pd.DataFrame([
+            {
+                "Requirement": skill,
+                "Assessment": (
+                    "Matched"
+                    if skill in primary["matched"]
+                    else "Gap"
+                ),
+                "Priority": (
+                    "Maintain / deepen"
+                    if skill in primary["matched"]
+                    else "High"
                 )
+            }
+            for skill in primary["required"]
+        ])
 
-    # -----------------------------------------------------
-    # Skill gap analysis
-    # -----------------------------------------------------
-
-    section_heading(
-        "05",
-        "Skill gap analysis",
-        "See where your provided skills overlap with the target requirements."
-    )
-
-    gap_left, gap_right = st.columns(2)
-
-    with gap_left:
-        with st.container(border=True):
-            st.markdown(
-                '<div class="panel-title">Skills you already have</div>',
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                '<div class="panel-copy">Recognised target skills found in your selected skills.</div>',
-                unsafe_allow_html=True
-            )
-            render_chips(results["matched_skills"])
-
-    with gap_right:
-        with st.container(border=True):
-            st.markdown(
-                '<div class="panel-title">Skills to develop</div>',
-                unsafe_allow_html=True
-            )
-            st.markdown(
-                '<div class="panel-copy">Requirements not found in your provided skill list.</div>',
-                unsafe_allow_html=True
-            )
-            render_chips(results["missing_skills"], missing=True)
-
-    gap_rows = []
-
-    for skill in results["target_skills"]:
-        is_matched = skill in results["matched_skills"]
-        gap_rows.append({
-            "Required skill": skill,
-            "Status": "Covered" if is_matched else "Priority to learn",
-            "Suggested priority": "Maintain" if is_matched else "High",
-        })
-
-    if gap_rows:
-        gap_df = pd.DataFrame(gap_rows)
         st.dataframe(
             gap_df,
-            use_container_width=True,
             hide_index=True,
+            use_container_width=True
         )
+
     else:
         st.info(
-            "The job description did not contain recognised skills from "
-            "the built-in library. Add explicit skill requirements to "
-            "improve the comparison."
+            "No recognised skills were extracted from this job description. "
+            "Include explicit skills to improve the gap analysis."
         )
 
-    # -----------------------------------------------------
-    # Learning roadmap
-    # -----------------------------------------------------
+
+    # --------------------------------------------------------
+    # MULTI-JOB COMPARISON
+    # --------------------------------------------------------
+
+    if results["target_mode"] == "Compare multiple roles":
+
+        section_heading(
+            "06",
+            "Multi-role comparison",
+            "Compare your profile with different career paths."
+        )
+
+        comparison_df = pd.DataFrame([
+            {
+                "Role": item["role"],
+                "Match indicator": f"{item['score']}%",
+                "Skill coverage": f"{item['coverage']}%",
+                "Matched skills": len(item["matched"]),
+                "Skill gaps": len(item["missing"])
+            }
+            for item in results["comparisons"]
+        ])
+
+        st.dataframe(
+            comparison_df,
+            hide_index=True,
+            use_container_width=True
+        )
+
+        st.caption(
+            "Scores are comparative heuristics, not employment probabilities."
+        )
+
+
+    # --------------------------------------------------------
+    # CAREER SWITCH SIMULATOR
+    # --------------------------------------------------------
 
     section_heading(
-        "06",
-        "Your learning roadmap",
-        "A practical sequence for turning skill gaps into demonstrable ability."
+        "07",
+        "Career switch simulator",
+        "Explore how your profile aligns with another career direction."
     )
 
-    roadmap_items = []
+    switch_role = st.selectbox(
+        "Simulate a move into",
+        list(ROLE_PROFILES.keys()),
+        key="switch_role"
+    )
 
-    if results["missing_skills"]:
-        roadmap_items.append({
-            "title": "Build the foundations",
-            "copy": (
-                "Start with " + ", ".join(results["missing_skills"][:3]) +
-                ". Learn the core concepts and complete small guided exercises."
+    switch_data = ROLE_PROFILES[switch_role]
+
+    switch_match = analyse_match(
+        " ".join([
+            results["resume_text"],
+            " ".join(results["user_skills"]),
+            results["interests"],
+            results["education"],
+            results["experience_level"]
+        ]),
+        results["user_skills"],
+        " ".join(switch_data["skills"]),
+        switch_role,
+        switch_data["skills"]
+    )
+
+    s1, s2, s3 = st.columns(3)
+
+    with s1:
+        render_metric(
+            "SWITCH ALIGNMENT",
+            f"{switch_match['score']}%",
+            switch_role
+        )
+
+    with s2:
+        render_metric(
+            "TRANSFERABLE SKILLS",
+            len(switch_match["matched"]),
+            "Skills already aligned"
+        )
+
+    with s3:
+        render_metric(
+            "NEW SKILLS",
+            len(switch_match["missing"]),
+            "Skills to develop"
+        )
+
+    with st.container(border=True):
+        st.markdown(
+            '<div class="panel-title">Transferable strengths</div>',
+            unsafe_allow_html=True
+        )
+        render_chips(switch_match["matched"])
+
+        st.markdown(
+            '<div class="panel-title">Suggested transition skills</div>',
+            unsafe_allow_html=True
+        )
+        render_chips(switch_match["missing"], missing=True)
+
+
+    # --------------------------------------------------------
+    # CAREER READINESS ASSESSMENT
+    # --------------------------------------------------------
+
+    section_heading(
+        "08",
+        "Career readiness assessment",
+        "Review the essentials before applying for a role."
+    )
+
+    readiness_items = [
+        (
+            "Resume uploaded",
+            bool(results["resume_text"].strip()),
+            "Upload a resume with relevant experience and projects."
+        ),
+        (
+            "Core skills identified",
+            len(results["user_skills"]) >= 3,
+            "Add at least three skills you can demonstrate."
+        ),
+        (
+            "Role requirements reviewed",
+            bool(primary["required"]),
+            "Use a role profile or a job description with clear requirements."
+        ),
+        (
+            "Project evidence prepared",
+            False,
+            "Add portfolio links and measurable project outcomes."
+        )
+    ]
+
+    readiness_score = round(
+        sum(1 for _, done, _ in readiness_items if done)
+        / len(readiness_items) * 100
+    )
+
+    render_metric(
+        "READINESS CHECKLIST",
+        f"{readiness_score}%",
+        "Checklist completion, not a validated readiness test"
+    )
+
+    for label, done, advice in readiness_items:
+        st.checkbox(
+            f"{'✓' if done else '○'} {label} — {advice}",
+            value=done,
+            key="ready_" + re.sub(
+                r"[^a-z0-9]+", "_", label.lower()
+            )
+        )
+
+
+    # --------------------------------------------------------
+    # LEARNING LINKS, CERTIFICATIONS AND PROJECTS
+    # --------------------------------------------------------
+
+    section_heading(
+        "09",
+        "Your learning roadmap",
+        "Turn skill gaps into a practical learning plan."
+    )
+
+    role_data = ROLE_PROFILES.get(
+        primary["role"],
+        ROLE_PROFILES.get(
+            results["target_role"],
+            ROLE_PROFILES["Software Engineer"]
+        )
+    )
+
+    if primary["missing"]:
+        roadmap = [
+            (
+                "01",
+                "Build the foundations",
+                "Prioritise " + ", ".join(primary["missing"][:3]) +
+                " and practise the basic concepts."
             ),
-        })
-        roadmap_items.append({
-            "title": "Practise with a focused project",
-            "copy": (
-                "Apply the new skills to a small project. Document your "
-                "approach, the tools used and the result."
+            (
+                "02",
+                "Apply the skills",
+                "Complete a small project that demonstrates the new skills."
             ),
-        })
-        roadmap_items.append({
-            "title": "Demonstrate your progress",
-            "copy": (
-                "Publish your project, explain your decisions and practise "
-                "answering questions about your implementation."
-            ),
-        })
+            (
+                "03",
+                "Show your evidence",
+                "Document your approach, publish your project and update your resume."
+            )
+        ]
     else:
-        roadmap_items = [
-            {
-                "title": "Strengthen your evidence",
-                "copy": (
-                    "Build a portfolio project that demonstrates your "
-                    "existing skills in a realistic setting."
-                ),
-            },
-            {
-                "title": "Develop depth",
-                "copy": (
-                    "Practise more advanced tasks and explain the trade-offs "
-                    "behind your decisions."
-                ),
-            },
-            {
-                "title": "Prepare for applications",
-                "copy": (
-                    "Tailor your resume to the role and prepare examples "
-                    "that show the impact of your work."
-                ),
-            },
+        roadmap = [
+            (
+                "01",
+                "Deepen your skills",
+                "Practise advanced tasks relevant to the target role."
+            ),
+            (
+                "02",
+                "Build portfolio evidence",
+                "Create a realistic project and document your decisions."
+            ),
+            (
+                "03",
+                "Prepare for applications",
+                "Tailor your resume and prepare examples of your impact."
+            )
         ]
 
-    for index, item in enumerate(roadmap_items, start=1):
+    for number, title, copy in roadmap:
         st.markdown(f"""
         <div class="roadmap-card">
-            <div class="roadmap-number">{index:02d}</div>
-            <div>
-                <div class="roadmap-title">{safe_html(item['title'])}</div>
-                <div class="roadmap-copy">{safe_html(item['copy'])}</div>
-            </div>
+          <div class="roadmap-number">{number}</div>
+          <div>
+            <div class="roadmap-title">{html.escape(title)}</div>
+            <div class="roadmap-copy">{html.escape(copy)}</div>
+          </div>
         </div>
         """, unsafe_allow_html=True)
 
-    project_col, course_col = st.columns(2)
-
-    with project_col:
-        with st.container(border=True):
-            st.markdown(
-                '<div class="panel-title">Suggested projects</div>',
-                unsafe_allow_html=True
-            )
-            st.markdown("")
-            for i, project in enumerate(results["projects"], start=1):
-                st.markdown(f"**{i:02d}.** {project}")
+    course_col, project_col = st.columns(2)
 
     with course_col:
         with st.container(border=True):
             st.markdown(
-                '<div class="panel-title">Suggested learning topics</div>',
+                '<div class="panel-title">Course recommendations</div>',
                 unsafe_allow_html=True
             )
-            st.markdown("")
-            for i, course in enumerate(results["courses"], start=1):
-                st.markdown(f"**{i:02d}.** {course}")
 
-    # -----------------------------------------------------
-    # Export report
-    # -----------------------------------------------------
+            for label, url in role_data["courses"]:
+                st.markdown(f"- [{label}]({url})")
+
+            st.markdown("")
+            st.markdown(
+                '<div class="panel-title">Certification recommendations</div>',
+                unsafe_allow_html=True
+            )
+
+            for label, url in role_data["certifications"]:
+                st.markdown(f"- [{label}]({url})")
+
+    with project_col:
+        with st.container(border=True):
+            st.markdown(
+                '<div class="panel-title">Project recommendations</div>',
+                unsafe_allow_html=True
+            )
+
+            for index, project in enumerate(role_data["projects"], 1):
+                st.markdown(f"**{index:02d}.** {project}")
+
+            st.markdown("")
+            st.markdown(
+                '<div class="panel-title">Personalised career guidance</div>',
+                unsafe_allow_html=True
+            )
+
+            if primary["missing"]:
+                st.write(
+                    "Start with **"
+                    + ", ".join(primary["missing"][:3])
+                    + "**. Practise through exercises, then demonstrate "
+                    "your skills in a portfolio project."
+                )
+            else:
+                st.write(
+                    "Your provided skills cover the recognised requirements "
+                    "in this role template. Deepen your skills, tailor your "
+                    "resume and prepare examples of your impact."
+                )
+
+
+    # --------------------------------------------------------
+    # JOB-MARKET CONTEXT
+    # --------------------------------------------------------
 
     section_heading(
-        "07",
-        "Take your analysis with you",
-        "Export your results for reference or further editing."
+        "10",
+        "Job-market context",
+        "General role context and links to external job-market resources."
+    )
+
+    if primary["role"] == "Custom job description":
+        market_text = (
+            "For this custom posting, review the employer's requirements, "
+            "location, seniority and posting date. This app does not retrieve "
+            "live vacancy counts or salary statistics."
+        )
+    else:
+        market_text = role_data["market"]
+
+    with st.container(border=True):
+        st.write(market_text)
+
+        st.markdown(
+            "[Search jobs on LinkedIn](https://www.linkedin.com/jobs/) · "
+            "[Search jobs on Indeed India](https://in.indeed.com/) · "
+            "[Explore occupations on O*NET](https://www.onetonline.org/)"
+        )
+
+        st.caption(
+            "Market context is general guidance, not live market analytics. "
+            "Vacancy counts and salaries vary by location and time."
+        )
+
+
+    # --------------------------------------------------------
+    # EXPORT REPORT
+    # --------------------------------------------------------
+
+    section_heading(
+        "11",
+        "Your career report",
+        "Download your analysis for future reference."
     )
 
     report = {
-        "Candidate": results["full_name"],
+        "Candidate": results["name"],
         "Education": results["education"],
         "Experience level": results["experience_level"],
-        "Current status": results["current_status"],
-        "Years of experience": results["years_experience"],
-        "Target opportunity": results["target_role"],
-        "Generated date": results["generated_date"],
-        "Career alignment indicator": (
-            f"{results['career_fit']}% — {results['fit_label']}. "
-            "This is a heuristic indicator, not a validated hiring prediction."
+        "Current status": results["status"],
+        "Target opportunity": primary["role"],
+        "Report date": results["date"],
+        "Match indicator": (
+            f"{primary['score']}% — heuristic, not a hiring probability"
         ),
-        "Skill coverage": (
-            f"{results['coverage']}% "
-            f"({len(results['matched_skills'])} of "
-            f"{len(results['target_skills'])} recognised skills)"
-        ),
+        "Skill coverage": f"{primary['coverage']}%",
         "Text similarity": (
-            f"{results['similarity']}% TF-IDF similarity. "
-            "This is a text comparison, not a measure of actual competence."
+            f"{primary['similarity']}% using {primary['method']}"
         ),
-        "Skills identified": ", ".join(results["user_skills"]) or "None identified",
-        "Matched skills": ", ".join(results["matched_skills"]) or "None",
-        "Skills to develop": ", ".join(results["missing_skills"]) or "None identified",
-        "Suggested projects": "\n".join(
-            f"- {item}" for item in results["projects"]
+        "Matched skills": (
+            ", ".join(primary["matched"]) or "None recognised"
         ),
-        "Suggested learning topics": "\n".join(
-            f"- {item}" for item in results["courses"]
+        "Missing skills": (
+            ", ".join(primary["missing"]) or "None recognised"
         ),
+        "Identified skills": (
+            ", ".join(results["user_skills"]) or "None identified"
+        ),
+        "Recommended projects": "\n".join(
+            "- " + item for item in role_data["projects"]
+        ),
+        "Recommended courses": "\n".join(
+            label + ": " + url
+            for label, url in role_data["courses"]
+        ),
+        "Recommended certifications": "\n".join(
+            label + ": " + url
+            for label, url in role_data["certifications"]
+        ),
+        "Scoring methodology": (
+            "65% recognised skill coverage + 35% text similarity. "
+            "Not a validated recruitment prediction."
+        )
     }
 
-    report_df = pd.DataFrame(
-        [{"Section": key, "Details": value} for key, value in report.items()]
-    )
+    report_df = pd.DataFrame([
+        {"Section": key, "Details": value}
+        for key, value in report.items()
+    ])
 
     export_left, export_right = st.columns(2)
 
     with export_left:
-        csv_data = report_df.to_csv(index=False).encode("utf-8-sig")
         st.download_button(
             "Download CSV report",
-            data=csv_data,
+            data=report_df.to_csv(index=False).encode("utf-8-sig"),
             file_name="skillbridge_career_report.csv",
             mime="text/csv",
-            use_container_width=True,
+            use_container_width=True
         )
 
     with export_right:
         try:
-            pdf_data = build_pdf(report)
+            pdf_bytes = build_pdf(report)
+
             st.download_button(
                 "Download PDF report",
-                data=pdf_data,
+                data=pdf_bytes,
                 file_name="skillbridge_career_report.pdf",
                 mime="application/pdf",
-                use_container_width=True,
-            )
-        except Exception as error:
-            st.warning(
-                f"PDF generation failed. You can still download the CSV. "
-                f"Details: {error}"
+                use_container_width=True
             )
 
+        except Exception as error:
+            st.warning(f"PDF export failed: {error}")
+
     st.caption(
-        "This report is generated from the information you provide. "
-        "It is an educational aid, not a validated recruitment assessment "
-        "or guarantee of employment."
+        "SkillBridge AI provides educational guidance based on supplied "
+        "information. It does not guarantee interviews, employment or salary outcomes."
     )
 
 
-# =========================================================
+# ============================================================
 # FOOTER
-# =========================================================
+# ============================================================
 
 st.markdown("""
 <div class="footer">
-    <span>✦ SkillBridge AI · Career Intelligence</span>
-    <span>Understand your skills. Plan your next move.</span>
+  <span>✦ SkillBridge AI · Career Intelligence</span>
+  <span>Understand your skills. Plan your next move.</span>
 </div>
 """, unsafe_allow_html=True)
